@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò chơi: Ngôi Nhà Hóa Học</title>
+    <style>
+        /* Giao diện tổng quan */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        h1 { color: #2c3e50; text-align: center; text-transform: uppercase; margin-bottom: 5px; }
+        p.subtitle { color: #34495e; font-size: 18px; margin-top: 0; text-align: center; }
+        
+        .hidden { display: none !important; }
+
+        /* Nút bấm */
+        .btn {
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: bold;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
+        }
+        .btn:hover { background-color: #d35400; transform: translateY(-2px); }
+
+        /* Khu vực 2 ngôi nhà */
+        .houses-container {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 30px;
+        }
+
+        .house {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 300px;
+        }
+
+        /* Mái nhà */
+        .roof {
+            width: 0;
+            height: 0;
+            border-left: 160px solid transparent;
+            border-right: 160px solid transparent;
+            border-bottom: 120px solid #e74c3c;
+            position: relative;
+        }
+        .roof-text {
+            position: absolute;
+            top: 50px;
+            left: -40px;
+            width: 80px;
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .house-13 .roof { border-bottom-color: #3498db; }
+
+        /* Thân nhà (Khu vực thả thẻ) */
+        .house-body {
+            width: 280px;
+            min-height: 250px;
+            background: #ecf0f1;
+            border: 4px dashed #bdc3c7;
+            border-top: none;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.3s;
+        }
+        .house-body.drag-over { background: #ffeaa7; border-color: #fdcb6e; }
+
+        /* Khu vực chứa thẻ ban đầu */
+        .cards-pool {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            min-height: 100px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        /* Thẻ thông tin */
+        .card {
+            background: white;
+            border: 2px solid #95a5a6;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-weight: bold;
+            color: #2c3e50;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .card:active { cursor: grabbing; transform: scale(1.05); }
+
+        /* Modal Phản hồi */
+        #feedback-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .feedback-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .feedback-box h2 { font-size: 32px; margin-top: 0; }
+        .feedback-box p { font-size: 18px; line-height: 1.5; color: #555; }
+        .close-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        /* Hiệu ứng Ngôi sao */
+        .star {
+            position: absolute;
+            color: #f1c40f;
+            font-size: 40px;
+            animation: pop 1.5s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes pop {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            100% { transform: scale(2.5) rotate(360deg) translateY(-80px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏠 Ngôi Nhà Hóa Học 🏠</h1>
+    <p class="subtitle">Hãy kéo các thẻ thông tin bên dưới thả vào đúng ngôi nhà của nó nhé!</p>
+
+    <div class="houses-container">
+        <div class="house house-8">
+            <div class="roof">
+                <div class="roof-text">Z = 8</div>
+            </div>
+            <div class="house-body dropzone" id="house-8" data-house="8">
+                </div>
+        </div>
+
+        <div class="house house-13">
+            <div class="roof">
+                <div class="roof-text">Z = 13</div>
+            </div>
+            <div class="house-body dropzone" id="house-13" data-house="13">
+                </div>
+        </div>
+    </div>
+
+    <div class="cards-pool dropzone" id="cards-pool">
+        </div>
+
+    <button class="btn" onclick="checkAnswers()">Kiểm Tra Kết Quả</button>
+
+    <div id="feedback-overlay" class="hidden">
+        <div class="feedback-box">
+            <h2 id="feedback-title"></h2>
+            <p id="feedback-desc"></p>
+            <button class="close-btn" onclick="closeFeedback()">Đóng</button>
+        </div>
+    </div>
+
+<script>
+    // Dữ liệu 10 thẻ thông tin
+    const cardsData = [
+        // Z = 8 (Oxygen)
+        { id: 'c1', text: '1s² 2s² 2p⁴', target: '8' },
+        { id: 'c2', text: 'Ô số 8', target: '8' },
+        { id: 'c3', text: 'Chu kì 2', target: '8' },
+        { id: 'c4', text: 'Nhóm VIA', target: '8' },
+        { id: 'c5', text: 'Nguyên tố Phi kim', target: '8' },
+        // Z = 13 (Aluminum)
+        { id: 'c6', text: '1s² 2s² 2p⁶ 3s² 3p¹', target: '13' },
+        { id: 'c7', text: 'Ô số 13', target: '13' },
+        { id: 'c8', text: 'Chu kì 3', target: '13' },
+        { id: 'c9', text: 'Nhóm IIIA', target: '13' },
+        { id: 'c10', text: 'Nguyên tố Kim loại', target: '13' }
+    ];
+
+    // Khởi tạo Audio Context
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTingTing() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        osc.frequency.setValueAtTime(1318.51, audioCtx.currentTime + 0.1); // E6
+        gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+    }
+
+    function playBzzzz() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.6);
+    }
+
+    function createStars() {
+        const overlay = document.getElementById('feedback-overlay');
+        for (let i = 0; i < 20; i++) {
+            let star = document.createElement('div');
+            star.innerHTML = '⭐';
+            star.className = 'star';
+            star.style.left = (Math.random() * 80 + 10) + '%';
+            star.style.top = (Math.random() * 80 + 10) + '%';
+            overlay.appendChild(star);
+            setTimeout(() => star.remove(), 1500);
+        }
+    }
+
+    // Xáo trộn mảng
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    // Khởi tạo game
+    function initGame() {
+        const pool = document.getElementById('cards-pool');
+        pool.innerHTML = '';
+        
+        // Trộn ngẫu nhiên các thẻ trước khi hiển thị
+        const shuffledCards = shuffle([...cardsData]);
+
+        shuffledCards.forEach(data => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.draggable = true;
+            card.id = data.id;
+            card.innerText = data.text;
+            card.dataset.target = data.target;
+
+            // Sự kiện Drag Start
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', card.id);
+                setTimeout(() => card.style.opacity = '0.5', 0);
+            });
+
+            // Sự kiện Drag End
+            card.addEventListener('dragend', () => {
+                card.style.opacity = '1';
+            });
+
+            pool.appendChild(card);
+        });
+
+        setupDropZones();
+    }
+
+    function setupDropZones() {
+        const dropzones = document.querySelectorAll('.dropzone');
+        
+        dropzones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const cardId = e.dataTransfer.getData('text/plain');
+                const card = document.getElementById(cardId);
+                if (card) {
+                    zone.appendChild(card);
+                }
+            });
+        });
+    }
+
+    function checkAnswers() {
+        const pool = document.getElementById('cards-pool');
+        if (pool.children.length > 0) {
+            alert("Bạn chưa xếp hết các thẻ vào 2 ngôi nhà! Hãy xếp đầy đủ trước khi kiểm tra nhé.");
+            return;
+        }
+
+        let isAllCorrect = true;
+
+        // Kiểm tra nhà Z=8
+        const house8Cards = document.getElementById('house-8').children;
+        for (let card of house8Cards) {
+            if (card.dataset.target !== '8') isAllCorrect = false;
+        }
+
+        // Kiểm tra nhà Z=13
+        const house13Cards = document.getElementById('house-13').children;
+        for (let card of house13Cards) {
+            if (card.dataset.target !== '13') isAllCorrect = false;
+        }
+
+        const overlay = document.getElementById('feedback-overlay');
+        const title = document.getElementById('feedback-title');
+        const desc = document.getElementById('feedback-desc');
+        
+        overlay.classList.remove('hidden');
+
+        if (isAllCorrect) {
+            // Đúng hoàn toàn
+            title.innerText = "Bạn rất xuất sắc!";
+            title.style.color = "#27ae60";
+            desc.innerHTML = "Tất cả các thông tin đã được phân loại chính xác về đúng ngôi nhà.";
+            playTingTing();
+            createStars();
+        } else {
+            // Sai 1 hoặc nhiều thẻ
+            title.innerText = "Chưa chính xác!";
+            title.style.color = "#c0392b";
+            desc.innerHTML = `
+                Bạn đã xếp nhầm một số thẻ. Hãy nhớ lại nhé:<br><br>
+                <strong>Z = 8 (Oxygen):</strong> Là phi kim, chu kì 2, nhóm VIA, có cấu hình 1s² 2s² 2p⁴.<br><br>
+                <strong>Z = 13 (Aluminum):</strong> Là kim loại, chu kì 3, nhóm IIIA, có cấu hình 1s² 2s² 2p⁶ 3s² 3p¹.
+            `;
+            playBzzzz();
+        }
+    }
+
+    function closeFeedback() {
+        document.getElementById('feedback-overlay').classList.add('hidden');
+    }
+
+    // Chạy game khi tải trang
+    window.onload = initGame;
+
+</script>
+</body>
+</html>
